@@ -1,0 +1,19 @@
+{
+    "name": "jmmendi/crud3",
+    "type": "project",
+    "autoload": {
+        "psr-4": {
+            "App\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "JMMendi",
+            "email": "mendizabaly@gmail.com"
+        }
+    ],
+    "require": {
+        "fakerphp/faker": "^1.24",
+        "vlucas/phpdotenv": "^5.6"
+    }
+}
