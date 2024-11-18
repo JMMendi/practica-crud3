@@ -33,6 +33,40 @@ class User extends Conexion{
         }
     }
 
+    public static function read(?string $username = null) : array {
+        $q = ($username === null) ? "select * from users order by username" : "select id, username, email, perfil from users where username=:u";
+        $stmt = parent::getConexion()->prepare($q);
+
+        try {
+            ($username === null) ? $stmt->execute() : $stmt->execute([':u' => $username]);
+        } catch (PDOException $ex) {
+            throw new PDOException("Error en el create: ".$ex->getMessage(), -1);
+        } finally {
+            parent::cerrarConexion();
+        }
+
+        return $stmt->fetchAll(PDO::FETCH_OBJ);
+    }
+
+    public function update(int $id) : void {
+        $q = "update users set username=:u, password=:p, email=:e, perfil=:pe where id <> :i";
+        $stmt = parent::getConexion()->prepare($q);
+
+        try {
+            $stmt->execute([
+                ':u' => $this->username,
+                ':p' => $this->password,
+                ':e' => $this->email,
+                ':pe' => $this->perfil,
+                ':i' => $id
+            ]);
+        } catch (PDOException $ex) {
+            throw new PDOException("Error en el update: ".$ex->getMessage(), -1);
+        } finally {
+            parent::cerrarConexion();
+        }
+    }
+
     public static function loginValido(string $email, string $pass) : bool|array {
         $q = "select username, perfil, password from users where email=:e";
         $stmt = parent::getConexion()->prepare($q);
@@ -61,16 +95,21 @@ class User extends Conexion{
         return [$resultado[0]->username, $email, $resultado[0]->perfil];
     }
 
-    public static function existeValor(string $nomCampo, string $valor) : bool {
-        $q = "select count(*) as total from users where $nomCampo=:v";
+    public static function existeValor(string $nomCampo, string $valor, int $id=null) : bool {
+        $q = ($id === null) ? "select count(*) as total from users where $nomCampo=:v" : "select count(*) as total from users where $nomCampo=:v AND id <> $id";
         $stmt = parent::getConexion()->prepare($q);
 
         try {
+            ($id === null) ? $stmt->execute([
+                ':v' => $valor
+            ]) :
             $stmt->execute([
                 ':v' => $valor,
-            ]);
+                ':i' => $id
+            ])
+            ;
         } catch (PDOException $ex) {
-            throw new PDOException("Error en el create: ".$ex->getMessage(), -1);
+            throw new PDOException("Error en el existeValor: ".$ex->getMessage(), -1);
         } finally {
             parent::cerrarConexion();
         }

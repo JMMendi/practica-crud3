@@ -1,15 +1,19 @@
 <?php
-    session_start();
 
-    require __DIR__."/../vendor/autoload.php";
+use App\Db\User;
 
-    $email = false;
-    if (isset($_SESSION['login'])) {
-        $username = $_SESSION['login'][0];
-        $email = $_SESSION['login'][1];
-        $perfil = $_SESSION['login'][2];
+session_start();
 
-    }
+require __DIR__ . "/../vendor/autoload.php";
+
+$usuarios = User::read();
+
+$email = false;
+if (isset($_SESSION['login'])) {
+    $username = $_SESSION['login'][0];
+    $email = $_SESSION['login'][1];
+    $perfil = $_SESSION['login'][2];
+}
 ?>
 
 <!DOCTYPE html>
@@ -42,7 +46,7 @@
             </a>
             <div class="hidden w-full md:block md:w-auto" id="navbar-default">
                 <ul class="font-medium flex flex-col p-4 md:p-0 mt-4 border border-gray-100 rounded-lg bg-gray-50 md:flex-row md:space-x-8 rtl:space-x-reverse md:mt-0 md:border-0 md:bg-white dark:bg-gray-800 md:dark:bg-gray-900 dark:border-gray-700">
-                    <?php if(!$email) {
+                    <?php if (!$email) {
                         echo <<< TXT
                             <li>
                                 <a href="register.php" class="block py-2 px-3 text-white bg-blue-700 rounded md:bg-transparent md:text-blue-700 md:p-0 dark:text-white md:dark:text-blue-500" aria-current="page">Register</a>
@@ -55,6 +59,9 @@
                         echo <<< TXT
                             <li>
                                 <input type='text' value='$username ($email)' class='p-2  rounded rounded-xl border-2 border-blue-500 italic' readonly/>
+                            </li>
+                            <li>
+                                <a href='update.php?un=$username' class='block p-2 rounded-xl bg-green-500 hover:bg-green-600 text-white font-semibold'><i class='fas fa-edit'></i>Edit</a>
                             </li>
                             <li>
                                 <a href='logout.php' class='block p-2 rounded-xl bg-red-500 hover:bg-red-600 text-white font-semibold'>
@@ -75,14 +82,71 @@
         <div class="flex flex-row-reverse mb-2">
             <a href="nuevo.php" class="p-2 rounded-x1 text-white bg-blue-500 hover:bg-blue-800 font-semibold"><i class="fas fa-add mr-2"></i>NUEVO</a>
         </div>
-        <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
-            <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
-                
-            </thead>
-            <tbody>
-                
-            </tbody>
-        </table>
+
+
+        <div class="relative overflow-x-auto">
+            <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
+                <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+                    <tr>
+                        <th scope="col" class="px-6 py-3">
+                            ID
+                        </th>
+                        <th scope="col" class="px-6 py-3">
+                            Username
+                        </th>
+                        <th scope="col" class="px-6 py-3">
+                            Email
+                        </th>
+                        <th scope="col" class="px-6 py-3">
+                            Perfil
+                        </th>
+                        <?php
+                            if(isset($_SESSION['login']) && $perfil == 'Admin') {
+                                echo <<< TXT
+                                    <th scope="col" class="px-6 py-3">
+                                        Acciones
+                                    </th>
+                                TXT;
+                            };
+                            
+                        ?>
+                        
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php
+                    foreach($usuarios as $item) { 
+                        $color = match(true) {
+                            $item->perfil == "Admin" => 'text-red-500 font-bold',
+                            default => 'text-blue-500 font-bold'
+                        };
+                        echo <<< TXT
+                            <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
+                                <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+                                    {$item->id}
+                                </th>
+                                <td class="px-6 py-4">
+                                    {$item->username}
+                                </td>
+                                <td class="px-6 py-4">
+                                    {$item->email}
+                                </td>
+                                <td class="px-6 py-4 $color">
+                                    {$item->perfil}
+                                </td>
+                        TXT;
+                        if (isset($_SESSION['login']) && $perfil == 'Admin') {
+                            echo "<td class='px-6 py-4'>";
+                                echo "Actualizar";
+                            echo "</td>";
+                        }
+                        echo "</tr>";
+                    } 
+                    ?>
+                </tbody>
+            </table>
+        </div>
+
     </div>
 </body>
 

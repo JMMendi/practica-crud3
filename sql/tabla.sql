@@ -2,7 +2,7 @@ create table users (
     id int auto_increment primary key,
     username varchar(50) unique not null,
     email varchar(60) unique not null,
-    perfil enum("Admin", "Normal", "Guest") DEFAULT ("Guest"),
+    perfil enum("Admin", "Normal") DEFAULT ("Normal"),
     password varchar(200) not null
 );
 

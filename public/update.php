@@ -1,10 +1,34 @@
 <?php
-    session_start();
 
+use App\Utils\Utilidades;
 use App\Db\User;
 use App\Utils\Datos;
-    use App\Utils\Utilidades;
+
+    session_start();
+
+    if (!isset($_SESSION['login'])) { // Si no está logeado, se va
+        header("Location:login.php");
+        exit;
+    }
+
+    if (!isset($_GET['un'])) { //Si no manda un usuario por get, se va
+        header("Location:login.php");
+        exit;
+    }
+
+    $un = $_GET['un'];
+    $username= $_SESSION['login'][0];
+    $perfil = $_SESSION['login'][2];
+
+    if ($perfil == 'Normal' && $username != $un) { //Si el perfil es Normal pero se intenta editar un usuario distinto al logeado, se va
+        header("Location:login.php");
+        exit;
+    }
+
     require __DIR__."/../vendor/autoload.php";
+
+    $usuario = User::read($username)[0];
+
 
     $perfiles = Datos::getPerfiles();
 
@@ -17,46 +41,48 @@ use App\Utils\Datos;
 
         if (!Utilidades::emailValido($email)) {
             $errores = true;
-            
         } else {
-            if (Utilidades::isCampoDuplicado('email', $email)) {
+            if (Utilidades::isCampoDuplicado('email', $email, $usuario->id)) {
                 $errores = true;
             }
         }
         if (!Utilidades::longitudCadenaValida('username', $username, 5, 50)) {
             $errores = true;
         } else {
-            if (Utilidades::isCampoDuplicado('username', $username)) {
+            if (Utilidades::isCampoDuplicado('username', $username, $usuario->id)) {
                 $errores = true;
             }
         }
-        if (!Utilidades::longitudCadenaValida('password', $password, 5, 12)) {
+        if (!Utilidades::longitudCadenaValida('password', $password, 5, 12) && (strlen($password) != 0)) {
             $errores = true;
-            
         }
 
         if ($errores) {
-            header("Location:register.php");
+            header("Location:update.php?un=$un");
             exit;
         }
-        // Si llegamos hasta aquí, todo bien. Creamos el usuario
+        // Si llegamos hasta aquí, todo bien. Modificamos el usuario
 
         (new User)
         ->setUsername($username)
         ->setPassword($password)
         ->setEmail($email)
         ->setPerfil('Normal')
-        ->create();
+        ->update($usuario->id)
+        ;
 
-        // yyyy logeo
+        // yyyy vamos a inicio
 
-        $_SESSION['login'] = [$username, $email, 'Normal'];
+        $_SESSION['mensaje'] = "Usuario modificado correctamente.";
         header("Location:inicio.php");
 
         
     }
 
 ?>
+
+
+
 
 <!DOCTYPE html>
 <html lang="es">
@@ -78,17 +104,17 @@ use App\Utils\Datos;
             <div class="w-full bg-white rounded-lg shadow dark:border md:mt-0 sm:max-w-md xl:p-0 dark:bg-gray-800 dark:border-gray-700">
                 <div class="p-6 space-y-4 md:space-y-6 sm:p-8">
                     <h1 class="text-xl font-bold leading-tight tracking-tight text-gray-900 md:text-2xl dark:text-white">
-                        Registrar un Nuevo Usuario
+                        Modificar Usuario (<?= $un ?>)
                     </h1>
-                    <form class="space-y-4 md:space-y-6" action="<?php echo $_SERVER['PHP_SELF']; ?>" method="POST">
+                    <form class="space-y-4 md:space-y-6" action="<?php echo $_SERVER['PHP_SELF']."?un=".$un; ?>" method="POST">
                     <div>
                             <label for="username" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Tu nombre de usuario:</label>
-                            <input type="username" name="username" id="username" class="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Tu usuario">
+                            <input type="username" name="username" id="username" value="<?= $usuario->username; ?>" class="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Tu usuario">
                              <?php Utilidades::pintarErrores('err_username') ?> 
                         </div>
                         <div>
                             <label for="email" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Tu correo electrónico</label>
-                            <input type="email" name="email" id="email" class="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Tu email">
+                            <input type="email" name="email" id="email" value="<?= $usuario->email; ?>" class="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Tu email">
                              <?php Utilidades::pintarErrores('err_email') ?> 
                         </div>
                         <div>
@@ -109,7 +135,7 @@ use App\Utils\Datos;
                                 }
                             ?>
                         </div>
-                        <button type="submit" class="w-full text-white bg-green-600 hover:bg-green-700 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-primary-800">Registrarme</button>
+                        <button type="submit" class="w-full text-white bg-green-600 hover:bg-green-700 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-green-600 dark:hover:bg-green-700 dark:focus:ring-primary-800">Editar</button>
                         <a href="inicio.php" class="block w-full text-white bg-blue-600 hover:bg-blue-700 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-primary-800">Home</a>
                     </form>
                 </div>
@@ -117,5 +143,3 @@ use App\Utils\Datos;
         </div>
     </section>
 </body>
-
-</html>
