@@ -24,11 +24,12 @@ use App\Utils\Datos;
         header("Location:login.php");
         exit;
     }
+    $ediciónAMiMismo= ($un == $username);
 
     require __DIR__."/../vendor/autoload.php";
 
     $usuario = User::read($username)[0];
-
+    $usuarioMostrar = User::read($un)[0];
 
     $perfiles = Datos::getPerfiles();
 
@@ -36,20 +37,23 @@ use App\Utils\Datos;
         $username = Utilidades::sanearCadena($_POST['username']);
         $password = Utilidades::sanearCadena($_POST['password']);
         $email = Utilidades::sanearCadena($_POST['email']);
+        if ($perfil=='Admin') {
+            $perfil = Utilidades::sanearCadena($_POST['perfil']);
+        }
 
         $errores = false;
 
         if (!Utilidades::emailValido($email)) {
             $errores = true;
         } else {
-            if (Utilidades::isCampoDuplicado('email', $email, $usuario->id)) {
-                $errores = true;
+            if (Utilidades::isCampoDuplicado('email', $email, $usuarioMostrar->id)) {
+                $errores = true;  
             }
         }
         if (!Utilidades::longitudCadenaValida('username', $username, 5, 50)) {
             $errores = true;
         } else {
-            if (Utilidades::isCampoDuplicado('username', $username, $usuario->id)) {
+            if (Utilidades::isCampoDuplicado('username', $username, $usuarioMostrar->id)) {
                 $errores = true;
             }
         }
@@ -57,19 +61,35 @@ use App\Utils\Datos;
             $errores = true;
         }
 
+        if($perfil == 'Admin') {
+            if (!Utilidades::perfilValido($perfil)) {
+                $errores = true;
+            }
+        }
+
         if ($errores) {
             header("Location:update.php?un=$un");
             exit;
         }
         // Si llegamos hasta aquí, todo bien. Modificamos el usuario
+        // El problema ahora es que no escriba una contraseña para no cambiarsela o sí lo quiere modificar
 
-        (new User)
-        ->setUsername($username)
-        ->setPassword($password)
-        ->setEmail($email)
-        ->setPerfil('Normal')
-        ->update($usuario->id)
-        ;
+        $perfilActualizado = (isset($_POST['perfil'])) ? $perfil : 'Normal';
+
+        if (strlen($password) != 0) {
+            // Aquí, si ha escrito algo en password, se actualizarán todos los campos
+            User::update($usuarioMostrar->id, $username, $email, $perfilActualizado, $password);
+        } else { 
+            // Y aquí si no ha escrito nada
+            User::update($usuarioMostrar->id, $username, $email, $perfilActualizado);
+        }
+        if($ediciónAMiMismo) {
+            $_SESSION['login'][0] = $username;
+            $_SESSION['login'][1] = $email;
+            $_SESSION['login'][2] = $perfilActualizado;
+
+        }
+        
 
         // yyyy vamos a inicio
 
@@ -109,12 +129,12 @@ use App\Utils\Datos;
                     <form class="space-y-4 md:space-y-6" action="<?php echo $_SERVER['PHP_SELF']."?un=".$un; ?>" method="POST">
                     <div>
                             <label for="username" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Tu nombre de usuario:</label>
-                            <input type="username" name="username" id="username" value="<?= $usuario->username; ?>" class="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Tu usuario">
+                            <input type="username" name="username" id="username" value="<?= $usuarioMostrar->username; ?>" class="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Tu usuario">
                              <?php Utilidades::pintarErrores('err_username') ?> 
                         </div>
                         <div>
                             <label for="email" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Tu correo electrónico</label>
-                            <input type="email" name="email" id="email" value="<?= $usuario->email; ?>" class="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Tu email">
+                            <input type="email" name="email" id="email" value="<?= $usuarioMostrar->email; ?>" class="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Tu email">
                              <?php Utilidades::pintarErrores('err_email') ?> 
                         </div>
                         <div>
@@ -126,12 +146,15 @@ use App\Utils\Datos;
                         <div>
                             <?php 
                                 if(isset($_SESSION['login']) && $_SESSION['login'][2] === 'Admin') {
+                                    echo "<div class='mb-4'>";
+                                    echo "<label for='perfil' class='block mb-2 text-sm font-medium text-gray-900 dark:text-white'>Perfil</label>";
+                                    echo "<select name='perfil' class='bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500'";
+                                    $cadena = ($usuarioMostrar->perfil == $item) ? "selected" : "";
                                     foreach ($perfiles as $item) {
-                                        echo <<< TXT
-                                                <input id="{$item}" type="radio" value="{$item}" name="perfil" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
-                                                <label for="{$item}" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300 mr-4">{$item}</label>
-                                        TXT;
+                                        echo "<option $cadena>{$item}</option>";
                                     }
+                                    echo "</select/>";
+                                    echo "</div>";
                                 }
                             ?>
                         </div>

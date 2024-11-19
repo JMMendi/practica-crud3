@@ -58,7 +58,7 @@ if (isset($_SESSION['login'])) {
                     } else {
                         echo <<< TXT
                             <li>
-                                <input type='text' value='$username ($email)' class='p-2  rounded rounded-xl border-2 border-blue-500 italic' readonly/>
+                                <input type='text' value='$username' class='p-2  rounded rounded-xl border-2 border-blue-500 italic' readonly/>
                             </li>
                             <li>
                                 <a href='update.php?un=$username' class='block p-2 rounded-xl bg-green-500 hover:bg-green-600 text-white font-semibold'><i class='fas fa-edit'></i>Edit</a>
@@ -136,9 +136,21 @@ if (isset($_SESSION['login'])) {
                                 </td>
                         TXT;
                         if (isset($_SESSION['login']) && $perfil == 'Admin') {
-                            echo "<td class='px-6 py-4'>";
-                                echo "Actualizar";
-                            echo "</td>";
+                            echo <<< TXT
+                                <td class='px-6 py-4'>
+                                    <form method='POST' action='borrar.php'>
+                                        <input type='hidden' name='id' value='{$item->id}'/>
+                                        <a href='update.php?un={$item->username}'>
+                                            <i class='fas fa-edit text-green-600 hover:text-xl mr-2'></i>
+                                        </a>
+                                        <button type='submit' onclick="return confirm('¿Borrar Usuario?');">
+                                            <i class='fas fa-trash text-red-600 hover:text-xl'></i>
+                                        </button>
+                                    </form>
+                                    
+                                    
+                                </td>
+                            TXT;
                         }
                         echo "</tr>";
                     } 

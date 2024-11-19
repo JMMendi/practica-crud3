@@ -48,20 +48,55 @@ class User extends Conexion{
         return $stmt->fetchAll(PDO::FETCH_OBJ);
     }
 
-    public function update(int $id) : void {
-        $q = "update users set username=:u, password=:p, email=:e, perfil=:pe where id <> :i";
+    public static function getUserById(int $id) : array {
+        $q = "select * from users where id=:i";
         $stmt = parent::getConexion()->prepare($q);
 
         try {
             $stmt->execute([
-                ':u' => $this->username,
-                ':p' => $this->password,
-                ':e' => $this->email,
-                ':pe' => $this->perfil,
                 ':i' => $id
             ]);
         } catch (PDOException $ex) {
-            throw new PDOException("Error en el update: ".$ex->getMessage(), -1);
+            throw new PDOException("Error en el create: ".$ex->getMessage(), -1);
+        } finally {
+            parent::cerrarConexion();
+        }
+
+        return $stmt->fetchAll(PDO::FETCH_OBJ);
+    }
+
+    public static function update(int $id, string $username, string $email, string $perfil, ?string $password=null) {
+        $q = ($password === null) ? "update users set username=:u, email=:e, perfil=:p where id=:i" : "update users set username=:u, email=:e, perfil=:p, password=:pass where id=:i";
+        $stmt = parent::getConexion()->prepare($q);
+
+        // El problema aquí con el password es que no está hasheado, así que hay que hashearlo
+
+        // Cualquiera de las dos sirve.
+        // $pass = ($password != null) ? password_hash($password, PASSWORD_BCRYPT) : $password;
+        if ($password != null) {
+            $pass = password_hash($password, PASSWORD_BCRYPT);
+        }
+
+        $parametros = ($password == null) ? [':u' => $username, ':e' => $email, ':p' => $perfil, ':i' => $id] : [':u' => $username, ':e' => $email, ':p' => $perfil, ':pass' => $pass, ':i' => $id];
+        try {
+            $stmt->execute($parametros);
+        } catch (PDOException $ex) {
+            throw new PDOException("Error en el update: " . $ex->getMessage(), -1);
+        } finally {
+            parent::cerrarConexion();
+        }
+    }
+
+    public static function delete(int $id) : void {
+        $q = "delete from users where id=:i";
+        $stmt = parent::getConexion()->prepare($q);
+
+        try {
+            $stmt->execute([
+                ':i' => $id
+            ]);
+        } catch (PDOException $ex) {
+            throw new PDOException("Error en el delete: ".$ex->getMessage(), -1);
         } finally {
             parent::cerrarConexion();
         }
@@ -95,8 +130,8 @@ class User extends Conexion{
         return [$resultado[0]->username, $email, $resultado[0]->perfil];
     }
 
-    public static function existeValor(string $nomCampo, string $valor, int $id=null) : bool {
-        $q = ($id === null) ? "select count(*) as total from users where $nomCampo=:v" : "select count(*) as total from users where $nomCampo=:v AND id <> $id";
+    public static function existeValor(string $nomCampo, string $valor, ?int $id=null) : bool {
+        $q = ($id === null) ? "select count(*) as total from users where $nomCampo=:v" : "select count(*) as total from users where $nomCampo=:v AND id <> :i";
         $stmt = parent::getConexion()->prepare($q);
 
         try {

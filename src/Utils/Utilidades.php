@@ -43,7 +43,7 @@ class Utilidades {
         return true;
     }
 
-    public static function isCampoDuplicado(string $nomCampo, string $valorCampo, int $id=null) : bool {
+    public static function isCampoDuplicado(string $nomCampo, string $valorCampo, ?int $id=null) : bool {
         if (User::existeValor($nomCampo, $valorCampo, $id)) {
             $_SESSION["err_$nomCampo"] = "*** ERROR, $valorCampo ya está registrado. ***";
             return true;
